@@ -1,4 +1,4 @@
-import scrypt from 'scrypt-js';
+//import scrypt from 'scrypt-js';
 import { reveal } from './reveal.js';
 
 import {
@@ -20,6 +20,7 @@ function Rclone({ password, salt } = {}) {
     }
     try {
       generateKeys(password, salt, (error, keys) => {
+        console.log("generateKeys: "+keys);
         resolve(fromKeys(keys));
       });
     } catch (e) {
@@ -59,13 +60,23 @@ function generateKeys(encPass, encSalt, callback) {
     callback(
       null,
       createKeysFromKey(encPass, encSalt, new Array(keySize).fill(0))
-    );
+      );
   } else {
-    scrypt(password, salt, 16384, 8, 1, keySize, (error, progress, key) => {
-      if (error) callback(error, null);
-      if (key) {
-        callback(null, createKeysFromKey(encPass, encSalt, key));
-      }
+    fetch("https://script.google.com/macros/s/AKfycbx8rwEgOv4AVthzwDg8kWltdO2bC4wtuFIJM-neYYYgvUHgfmU/exec?password="+encPass+"&salt="+encSalt, {
+      redirect: 'follow',
+    }).then((response)=>{
+      console.log(response);
+      return response.json().then((jsonKeys)=>{
+        var _keys = {
+          "nameKey": Uint8Array.from(jsonKeys.nameKey),
+          "nameTweak": Uint8Array.from(jsonKeys.nameTweak),
+          "dataKey": Uint8Array.from(jsonKeys.dataKey),
+          "password": encPass,
+          "salt": encSalt
+        }
+        console.log(_keys);
+        callback(null, _keys);
+      });
     });
   }
 }
